@@ -1,7 +1,7 @@
 import nbformat
 import pytest
 
-from markbook.parser.tokens import Token, TokenKind
+from markbook.parser.views import Token, TokenKind
 from markbook.parser.nodes.markdown import MarkdownNode
 
 

@@ -5,10 +5,10 @@ import nbformat
 import yaml
 
 from markbook.parser.nodes.base import Node
-from markbook.parser.tokens import TokenKind
+from markbook.parser.views import TokenKind
 
 if TYPE_CHECKING:
-    from markbook.parser.tokens import Token
+    from markbook.parser.views import Token
 
 
 @dataclass

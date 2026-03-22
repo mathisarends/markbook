@@ -15,7 +15,6 @@ def build(
     input: Path = typer.Argument(..., help="Path to .md source file"),
     output: Path = typer.Option(None, "--output", "-o", help="Output .ipynb path"),
 ):
-    """Compile a markbook .md file into a .ipynb notebook."""
     if not input.exists():
         console.print(f"[red]Error:[/red] File not found: {input}")
         raise typer.Exit(1)
@@ -36,7 +35,6 @@ def watch(
     input: Path = typer.Argument(..., help="Path to .md source file"),
     output: Path = typer.Option(None, "--output", "-o", help="Output .ipynb path"),
 ):
-    """Watch a markbook .md file and rebuild on changes."""
     if not input.exists():
         console.print(f"[red]Error:[/red] File not found: {input}")
         raise typer.Exit(1)

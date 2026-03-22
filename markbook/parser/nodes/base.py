@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import nbformat
-    from markbook.parser.tokens import Token
+    from markbook.parser.views import Token
 
 
 class Node(abc.ABC):

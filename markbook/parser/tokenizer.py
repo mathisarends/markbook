@@ -1,20 +1,12 @@
 import re
 
-from markbook.parser.tokens import MarkbookSyntaxError, State, Token, TokenKind
-from markbook.parser.nodes.chapter import ChapterNode
-from markbook.parser.nodes.code import CodeCellNode
-from markbook.parser.nodes.divider import DividerNode
-from markbook.parser.nodes.frontmatter import FrontmatterNode
-from markbook.parser.nodes.toc import TocNode
+from markbook.exceptions import MarkbookSyntaxError
+from markbook.parser.views import State, Token, TokenKind
+from markbook.parser.nodes import ChapterNode, CodeCellNode, DividerNode, FrontmatterNode, TocNode
 
-_ANCHOR_PATTERN = re.compile(r"\{#(\S+)\}\s*$")
+class Tokenizer:
+    _ANCHOR_PATTERN = re.compile(r"\{#(\S+)\}\s*$")
 
-
-def tokenize(source: str) -> list[Token]:
-    return _Tokenizer(source).run()
-
-
-class _Tokenizer:
     def __init__(self, source: str) -> None:
         self._lines = source.split("\n")
         self._tokens: list[Token] = []
@@ -71,8 +63,6 @@ class _Tokenizer:
         else:
             self._buffer.append(line)
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
-
     def _finalize(self) -> None:
         if self._state == State.IN_FENCED_CODE:
             raise MarkbookSyntaxError("Unclosed fenced code block", self._fence_start_line)
@@ -91,7 +81,7 @@ class _Tokenizer:
         level = len(match.group(1))
         text = match.group(2).strip()
         anchor = None
-        if anchor_match := _ANCHOR_PATTERN.search(text):
+        if anchor_match := Tokenizer._ANCHOR_PATTERN.search(text):
             anchor = anchor_match.group(1)
             text = text[: anchor_match.start()].strip()
         return Token(kind=TokenKind.HEADING, value=text, meta={"level": level, "anchor": anchor})

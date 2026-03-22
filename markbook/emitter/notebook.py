@@ -5,25 +5,34 @@ from markbook.parser.nodes import ASTNode, FrontmatterNode
 
 def emit_notebook(ast: list[ASTNode]) -> nbformat.NotebookNode:
     nb = nbformat.v4.new_notebook()
-    kernel = "python3"
-    metadata: dict[str, str] = {}
+
+    _apply_metadata(nb, ast)
 
     for node in ast:
-        if isinstance(node, FrontmatterNode):
-            kernel = node.kernel
-            if node.title:
-                metadata["title"] = node.title
-            if node.author:
-                metadata["author"] = node.author
-
         node.render(nb)
 
+    return nb
+
+
+def _apply_metadata(nb: nbformat.NotebookNode, ast: list[ASTNode]) -> None:
+    frontmatter = next((n for n in ast if isinstance(n, FrontmatterNode)), None)
+
+    _KERNEL_LANGUAGE: dict[str, str] = {
+        "python3": "python",
+        "python": "python",
+        "r": "r",
+        "julia": "julia",
+    }
+
+    kernel = frontmatter.kernel if frontmatter else "python3"
     nb.metadata["kernelspec"] = {
         "display_name": kernel.capitalize(),
-        "language": kernel.replace("3", ""),
+        "language": _KERNEL_LANGUAGE.get(kernel, kernel),
         "name": kernel,
     }
-    for k, v in metadata.items():
-        nb.metadata[k] = v
-
-    return nb
+    
+    if frontmatter:
+        if frontmatter.title:
+            nb.metadata["title"] = frontmatter.title
+        if frontmatter.author:
+            nb.metadata["author"] = frontmatter.author

@@ -6,16 +6,8 @@ from .frontmatter import FrontmatterNode
 from .markdown import MarkdownNode
 from .toc import TocNode
 
-NODE_TYPES: list[type[Node]] = [
-    FrontmatterNode,
-    ChapterNode,
-    CodeCellNode,
-    TocNode,
-    DividerNode,
-    MarkdownNode,
-]
+from .registry import NODE_TYPES, ASTNode
 
-type ASTNode = FrontmatterNode | ChapterNode | CodeCellNode | TocNode | DividerNode | MarkdownNode
 
 __all__ = [
     "ASTNode",
