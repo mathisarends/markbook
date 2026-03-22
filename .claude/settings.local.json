@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python -m markbook.cli build example.md -o example.ipynb 2>&1)",
+      "Bash(.venv/Scripts/python -m markbook.cli build examples/diabetes.md -o examples/diabetes.ipynb)"
+    ]
+  }
+}

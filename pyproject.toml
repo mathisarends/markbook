@@ -19,6 +19,9 @@ dev = [
     "pre-commit>=4.3.0",
 ]
 
+[project.scripts]
+markbook = "markbook.cli:app"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
