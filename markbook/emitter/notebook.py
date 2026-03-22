@@ -4,27 +4,15 @@ import nbformat
 
 from ..parser.nodes import (
     ASTNode,
-    CalloutNode,
     ChapterNode,
     CodeCellNode,
     DividerNode,
     FrontmatterNode,
     MarkdownNode,
-    MetaBadgesNode,
     TocNode,
 )
 
 ACCENT_COLOR = "#2E86AB"
-WARNING_COLOR = "#E67E22"
-SUCCESS_COLOR = "#27AE60"
-DANGER_COLOR = "#E74C3C"
-
-CALLOUT_STYLES = {
-    "note": {"color": ACCENT_COLOR, "icon": "ℹ️", "bg": "#EBF5FB"},
-    "warning": {"color": WARNING_COLOR, "icon": "⚠️", "bg": "#FEF9E7"},
-    "tip": {"color": SUCCESS_COLOR, "icon": "💡", "bg": "#EAFAF1"},
-    "danger": {"color": DANGER_COLOR, "icon": "🚨", "bg": "#FDEDEC"},
-}
 
 CHAPTER_STYLES = {
     2: {"font_size": "1.6em", "border_width": "4px", "padding": "10px", "color": ACCENT_COLOR},
@@ -47,62 +35,25 @@ def render_chapter(node: ChapterNode) -> str:
     )
 
 
-def render_callout(node: CalloutNode) -> str:
-    style = CALLOUT_STYLES[node.kind]
-    return (
-        f'<div style="background: {style["bg"]}; border-left: 4px solid {style["color"]}; '
-        f'padding: 12px 16px; margin: 10px 0; border-radius: 4px;">\n'
-        f'<strong style="color: {style["color"]};">{style["icon"]} '
-        f"{node.kind.capitalize()}</strong><br/>\n"
-        f"{node.content}\n"
-        f"</div>"
-    )
-
-
 def render_toc(node: TocNode) -> str:
-    lines = [
-        '<div style="background: #f8f9fa; border: 1px solid #dee2e6; '
-        'border-radius: 6px; padding: 16px 24px; margin: 10px 0;">',
-        f'<h3 style="color: {ACCENT_COLOR}; margin-top: 0;">Table of Contents</h3>',
-    ]
+    lines = ["## Gliederung", ""]
+    prev_level = 1  # track nesting
 
-    # Group: level 2 = top-level, level 3 = nested
-    in_sub = False
     for h in node.headings:
         if h.level == 2:
-            if in_sub:
-                lines.append("</ul>")
-                in_sub = False
-            lines.append(f'<li><a href="#{h.anchor}" style="color: {ACCENT_COLOR}; '
-                         f'text-decoration: none; font-weight: bold;">{h.text}</a></li>')
+            # Top-level: bold link
+            lines.append(f"* **[{h.text}](#{h.anchor})**")
+            prev_level = 2
         elif h.level == 3:
-            if not in_sub:
-                lines.append('<ul style="list-style-type: disc; padding-left: 20px;">')
-                in_sub = True
-            lines.append(f'<li><a href="#{h.anchor}" style="color: #555; '
-                         f'text-decoration: none;">{h.text}</a></li>')
-    if in_sub:
-        lines.append("</ul>")
+            # Sub-chapter: indented
+            lines.append(f"    * [{h.text}](#{h.anchor})")
+            prev_level = 3
+        elif h.level == 4:
+            # Section: double-indented
+            lines.append(f"        * [{h.text}](#{h.anchor})")
+            prev_level = 4
 
-    # Wrap in outer list
-    body = "\n".join(lines[2:])
-    return (
-        lines[0] + "\n" + lines[1] + "\n"
-        '<ul style="list-style-type: none; padding-left: 0;">\n'
-        + body + "\n</ul>\n</div>"
-    )
-
-
-def render_meta_badges(node: MetaBadgesNode) -> str:
-    badges = []
-    for key, value in node.fields.items():
-        badges.append(
-            f'<span style="background: {ACCENT_COLOR}; color: white; '
-            f"padding: 4px 12px; border-radius: 16px; margin: 4px; "
-            f'font-size: 0.85em; display: inline-block;">'
-            f"<strong>{key}:</strong> {value}</span>"
-        )
-    return '<div style="margin: 10px 0;">' + "\n".join(badges) + "</div>"
+    return "\n".join(lines)
 
 
 def render_divider() -> str:
@@ -124,6 +75,15 @@ def emit_notebook(ast: list[ASTNode]) -> nbformat.NotebookNode:
                 metadata["title"] = node.title
             if node.author:
                 metadata["author"] = node.author
+            # Emit header cell with title and author
+            header_lines = []
+            if node.title:
+                header_lines.append(f"# {node.title}")
+            if node.author:
+                header_lines.append("")
+                header_lines.append(f"Name: {node.author}")
+            if header_lines:
+                nb.cells.append(nbformat.v4.new_markdown_cell(source="\n".join(header_lines)))
             continue
 
         if isinstance(node, ChapterNode):
@@ -132,14 +92,8 @@ def emit_notebook(ast: list[ASTNode]) -> nbformat.NotebookNode:
         elif isinstance(node, CodeCellNode):
             nb.cells.append(nbformat.v4.new_code_cell(source=node.source))
 
-        elif isinstance(node, CalloutNode):
-            nb.cells.append(nbformat.v4.new_markdown_cell(source=render_callout(node)))
-
         elif isinstance(node, TocNode):
             nb.cells.append(nbformat.v4.new_markdown_cell(source=render_toc(node)))
-
-        elif isinstance(node, MetaBadgesNode):
-            nb.cells.append(nbformat.v4.new_markdown_cell(source=render_meta_badges(node)))
 
         elif isinstance(node, DividerNode):
             nb.cells.append(nbformat.v4.new_markdown_cell(source=render_divider()))

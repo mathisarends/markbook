@@ -24,19 +24,8 @@ class CodeCellNode:
 
 
 @dataclass
-class CalloutNode:
-    kind: str  # note | warning | tip | danger
-    content: str
-
-
-@dataclass
 class TocNode:
     headings: list[ChapterNode] = field(default_factory=list)
-
-
-@dataclass
-class MetaBadgesNode:
-    fields: dict[str, str]
 
 
 @dataclass
@@ -49,4 +38,4 @@ class MarkdownNode:
     content: str
 
 
-type ASTNode = FrontmatterNode | ChapterNode | CodeCellNode | CalloutNode | TocNode | MetaBadgesNode | DividerNode | MarkdownNode
+type ASTNode = FrontmatterNode | ChapterNode | CodeCellNode | TocNode | DividerNode | MarkdownNode

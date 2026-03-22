@@ -1,7 +1,7 @@
 ---
 title: "Diabetes Risk Classification"
 kernel: python3
-author: "Mathis"
+author: "Mathis Kristoffer Arends"
 ---
 
 [TOC]
@@ -10,30 +10,15 @@ author: "Mathis"
 
 ## 1. Business Understanding {#chapter1}
 
-:::meta
-dataset: Pima Indians Diabetes Dataset
-rows: 768
-features: 8
-target: Outcome (binary)
-:::
-
 ### 1.1 Projektkontext {#chap1_1}
 
 Das Ziel dieses Projekts ist die Entwicklung eines Klassifikationsmodells zur Vorhersage des Diabetesrisikos basierend auf diagnostischen Messwerten.
-
-```note
-Diabetes Typ 2 betrifft ca. 8% der deutschen Bevölkerung. Früherkennung kann die Behandlungsergebnisse erheblich verbessern.
-```
 
 ### 1.2 Zielsetzung {#chap1_2}
 
 - Binäre Klassifikation: **Diabetes ja/nein**
 - Optimierung auf hohen Recall (Kranke nicht übersehen)
 - Interpretierbarkeit des Modells für medizinisches Fachpersonal
-
-```warning
-Klasse-Imbalance beachten: 88% negativ, 12% positiv. Accuracy ist hier kein geeignetes Maß.
-```
 
 ---
 
@@ -62,10 +47,6 @@ df.describe()
 df.info()
 ```
 
-```tip
-Verwende F₂-Score statt Accuracy bei unbalancierten Datensätzen — der F₂-Score gewichtet Recall stärker als Precision.
-```
-
 ### 2.3 Verteilung der Zielvariable {#chap2_3}
 
 ```python
@@ -92,10 +73,6 @@ for col in zero_cols:
 
 print("Fehlende Werte pro Spalte:")
 print(df.isnull().sum())
-```
-
-```danger
-Zeilen mit fehlenden Werten nicht einfach löschen — das kann die Klassenverteilung weiter verzerren. Imputation bevorzugen.
 ```
 
 ### 3.2 Imputation & Skalierung {#chap3_2}
@@ -139,10 +116,6 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 print(classification_report(y_test, y_pred))
 print(f"F₂-Score: {fbeta_score(y_test, y_pred, beta=2):.3f}")
-```
-
-```tip
-`class_weight="balanced"` passt die Gewichte automatisch an die Klassenverteilung an — ein einfacher erster Schritt gegen Imbalance.
 ```
 
 ---

@@ -7,18 +7,15 @@ import yaml
 from .lexer import Token
 from .nodes import (
     ASTNode,
-    CalloutNode,
     ChapterNode,
     CodeCellNode,
     DividerNode,
     FrontmatterNode,
     MarkdownNode,
-    MetaBadgesNode,
     TocNode,
 )
 
 CODE_LANGUAGES = {"python", "bash", "sql", "r", "julia", "sh", "javascript", "typescript", "java", "c", "cpp", "go", "rust"}
-CALLOUT_TYPES = {"note", "warning", "tip", "danger"}
 
 
 def _slugify(text: str) -> str:
@@ -51,22 +48,12 @@ def parse(tokens: list[Token]) -> list[ASTNode]:
             lang = token.meta.get("language", "").lower()
             if lang in CODE_LANGUAGES:
                 nodes.append(CodeCellNode(language=lang, source=token.value))
-            elif lang in CALLOUT_TYPES:
-                nodes.append(CalloutNode(kind=lang, content=token.value))
             else:
                 # Raw fenced block → markdown cell
                 if lang:
                     nodes.append(MarkdownNode(content=f"```{lang}\n{token.value}\n```"))
                 else:
                     nodes.append(MarkdownNode(content=token.value))
-
-        elif token.kind == "META":
-            fields: dict[str, str] = {}
-            for line in token.value.strip().split("\n"):
-                if ":" in line:
-                    key, value = line.split(":", 1)
-                    fields[key.strip()] = value.strip()
-            nodes.append(MetaBadgesNode(fields=fields))
 
         elif token.kind == "TOC":
             nodes.append(TocNode())

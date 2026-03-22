@@ -9,12 +9,11 @@ class State(Enum):
     NORMAL = auto()
     IN_FRONTMATTER = auto()
     IN_FENCED_CODE = auto()
-    IN_META_BLOCK = auto()
 
 
 @dataclass
 class Token:
-    kind: str  # FRONTMATTER | HEADING | FENCED | META | TOC | DIVIDER | MARKDOWN
+    kind: str  # FRONTMATTER | HEADING | FENCED | TOC | DIVIDER | MARKDOWN
     value: str = ""
     meta: dict[str, object] = field(default_factory=dict)
 
@@ -55,12 +54,6 @@ def tokenize(source: str) -> list[Token]:
             if line.strip() == "---":
                 flush_markdown()
                 tokens.append(Token(kind="DIVIDER"))
-                continue
-
-            # Meta block opening
-            if line.strip() == ":::meta":
-                flush_markdown()
-                state = State.IN_META_BLOCK
                 continue
 
             # TOC directive
@@ -112,21 +105,11 @@ def tokenize(source: str) -> list[Token]:
             else:
                 buffer.append(line)
 
-        elif state == State.IN_META_BLOCK:
-            if line.strip() == ":::":
-                tokens.append(Token(kind="META", value="\n".join(buffer)))
-                buffer.clear()
-                state = State.NORMAL
-            else:
-                buffer.append(line)
-
     # Check for unclosed blocks
     if state == State.IN_FENCED_CODE:
         raise MarkbookSyntaxError("Unclosed fenced code block", fence_start_line)
     if state == State.IN_FRONTMATTER:
         raise MarkbookSyntaxError("Unclosed frontmatter block", 1)
-    if state == State.IN_META_BLOCK:
-        raise MarkbookSyntaxError("Unclosed meta block", 0)
 
     flush_markdown()
     return tokens
