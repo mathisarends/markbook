@@ -1,12 +1,10 @@
-from __future__ import annotations
 
 from pathlib import Path
 
 import nbformat
 
-from .parser.lexer import tokenize
-from .parser.parser import parse
-from .emitter.notebook import emit_notebook
+from markbook.parser import tokenize, parse
+from markbook.emitter.notebook import emit_notebook
 
 
 def compile(input_path: Path, output_path: Path) -> None:

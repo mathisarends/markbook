@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
-from .compiler import compile
-from .watcher import watch as watch_file
+from markbook.compiler import compile
+from markbook.watcher import watch as watch_file
 
 app = typer.Typer(help="markbook — compile Markdown DSL to Jupyter Notebooks")
 console = Console()

@@ -1,115 +1,97 @@
-from __future__ import annotations
-
 import re
-from dataclasses import dataclass, field
-from enum import Enum, auto
 
+from markbook.parser.tokens import MarkbookSyntaxError, State, Token, TokenKind
+from markbook.parser.nodes.chapter import ChapterNode
+from markbook.parser.nodes.code import CodeCellNode
+from markbook.parser.nodes.divider import DividerNode
+from markbook.parser.nodes.frontmatter import FrontmatterNode
+from markbook.parser.nodes.toc import TocNode
 
-class State(Enum):
-    NORMAL = auto()
-    IN_FRONTMATTER = auto()
-    IN_FENCED_CODE = auto()
-
-
-@dataclass
-class Token:
-    kind: str  # FRONTMATTER | HEADING | FENCED | TOC | DIVIDER | MARKDOWN
-    value: str = ""
-    meta: dict[str, object] = field(default_factory=dict)
-
-
-_HEADING_RE = re.compile(r"^(#{2,4})\s+(.+)$")
-_FENCE_RE = re.compile(r"^```(\w*)$")
-
-
-class MarkbookSyntaxError(Exception):
-    def __init__(self, message: str, line: int):
-        super().__init__(f"Line {line}: {message}")
-        self.line = line
+_ANCHOR_PATTERN = re.compile(r"\{#(\S+)\}\s*$")
 
 
 def tokenize(source: str) -> list[Token]:
-    lines = source.split("\n")
-    tokens: list[Token] = []
-    state = State.NORMAL
-    buffer: list[str] = []
-    fence_lang = ""
-    fence_start_line = 0
+    return _Tokenizer(source).run()
 
-    def flush_markdown():
-        text = "\n".join(buffer).strip()
+
+class _Tokenizer:
+    def __init__(self, source: str) -> None:
+        self._lines = source.split("\n")
+        self._tokens: list[Token] = []
+        self._state = State.NORMAL
+        self._buffer: list[str] = []
+        self._fence_lang = ""
+        self._fence_start_line = 0
+
+    def run(self) -> list[Token]:
+        for i, line in enumerate(self._lines):
+            match self._state:
+                case State.NORMAL:           self._handle_normal(i, line)
+                case State.IN_FRONTMATTER:   self._handle_frontmatter(line)
+                case State.IN_FENCED_CODE:   self._handle_fenced_code(line)
+        self._finalize()
+        return self._tokens
+
+    def _handle_normal(self, i: int, line: str) -> None:
+        stripped = line.strip()
+
+        if i == 0 and stripped == FrontmatterNode.MARKER:
+            self._flush_markdown()
+            self._state = State.IN_FRONTMATTER
+        elif stripped == DividerNode.MARKER:
+            self._flush_markdown()
+            self._tokens.append(Token(kind=TokenKind.DIVIDER))
+        elif stripped == TocNode.MARKER:
+            self._flush_markdown()
+            self._tokens.append(Token(kind=TokenKind.TOC))
+        elif fence_match := CodeCellNode.FENCE_PATTERN.match(line):
+            self._flush_markdown()
+            self._fence_lang = fence_match.group(1)
+            self._fence_start_line = i + 1
+            self._state = State.IN_FENCED_CODE
+        elif heading_match := ChapterNode.PATTERN.match(line):
+            self._flush_markdown()
+            self._tokens.append(self._make_heading_token(heading_match))
+        else:
+            self._buffer.append(line)
+
+    def _handle_frontmatter(self, line: str) -> None:
+        if line.strip() == FrontmatterNode.MARKER:
+            self._tokens.append(Token(kind=TokenKind.FRONTMATTER, value="\n".join(self._buffer)))
+            self._buffer.clear()
+            self._state = State.NORMAL
+        else:
+            self._buffer.append(line)
+
+    def _handle_fenced_code(self, line: str) -> None:
+        if line.strip() == CodeCellNode.FENCE_CLOSE:
+            self._tokens.append(Token(kind=TokenKind.FENCED, value="\n".join(self._buffer), meta={"language": self._fence_lang}))
+            self._buffer.clear()
+            self._state = State.NORMAL
+        else:
+            self._buffer.append(line)
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _finalize(self) -> None:
+        if self._state == State.IN_FENCED_CODE:
+            raise MarkbookSyntaxError("Unclosed fenced code block", self._fence_start_line)
+        if self._state == State.IN_FRONTMATTER:
+            raise MarkbookSyntaxError("Unclosed frontmatter block", 1)
+        self._flush_markdown()
+
+    def _flush_markdown(self) -> None:
+        text = "\n".join(self._buffer).strip()
         if text:
-            tokens.append(Token(kind="MARKDOWN", value=text))
-        buffer.clear()
+            self._tokens.append(Token(kind=TokenKind.MARKDOWN, value=text))
+        self._buffer.clear()
 
-    for i, line in enumerate(lines):
-        if state == State.NORMAL:
-            # Frontmatter opening — only at very start of file
-            if line.strip() == "---" and i == 0:
-                flush_markdown()
-                state = State.IN_FRONTMATTER
-                continue
-
-            # Divider (--- not at start of file)
-            if line.strip() == "---":
-                flush_markdown()
-                tokens.append(Token(kind="DIVIDER"))
-                continue
-
-            # TOC directive
-            if line.strip() == "[TOC]":
-                flush_markdown()
-                tokens.append(Token(kind="TOC"))
-                continue
-
-            # Fenced code block opening
-            fence_match = _FENCE_RE.match(line)
-            if fence_match:
-                flush_markdown()
-                fence_lang = fence_match.group(1)
-                fence_start_line = i + 1
-                state = State.IN_FENCED_CODE
-                continue
-
-            # Heading
-            heading_match = _HEADING_RE.match(line)
-            if heading_match:
-                flush_markdown()
-                level = len(heading_match.group(1))
-                text = heading_match.group(2).strip()
-                # Extract anchor {#id}
-                anchor = None
-                anchor_match = re.search(r"\{#(\S+)\}\s*$", text)
-                if anchor_match:
-                    anchor = anchor_match.group(1)
-                    text = text[: anchor_match.start()].strip()
-                tokens.append(Token(kind="HEADING", value=text, meta={"level": level, "anchor": anchor}))
-                continue
-
-            # Regular line — accumulate
-            buffer.append(line)
-
-        elif state == State.IN_FRONTMATTER:
-            if line.strip() == "---":
-                tokens.append(Token(kind="FRONTMATTER", value="\n".join(buffer)))
-                buffer.clear()
-                state = State.NORMAL
-            else:
-                buffer.append(line)
-
-        elif state == State.IN_FENCED_CODE:
-            if line.strip() == "```":
-                tokens.append(Token(kind="FENCED", value="\n".join(buffer), meta={"language": fence_lang}))
-                buffer.clear()
-                state = State.NORMAL
-            else:
-                buffer.append(line)
-
-    # Check for unclosed blocks
-    if state == State.IN_FENCED_CODE:
-        raise MarkbookSyntaxError("Unclosed fenced code block", fence_start_line)
-    if state == State.IN_FRONTMATTER:
-        raise MarkbookSyntaxError("Unclosed frontmatter block", 1)
-
-    flush_markdown()
-    return tokens
+    @staticmethod
+    def _make_heading_token(match: re.Match) -> Token:
+        level = len(match.group(1))
+        text = match.group(2).strip()
+        anchor = None
+        if anchor_match := _ANCHOR_PATTERN.search(text):
+            anchor = anchor_match.group(1)
+            text = text[: anchor_match.start()].strip()
+        return Token(kind=TokenKind.HEADING, value=text, meta={"level": level, "anchor": anchor})
