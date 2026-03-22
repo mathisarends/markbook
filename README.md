@@ -6,6 +6,13 @@ Write in plain Markdown, render beautifully in Jupyter.
 ## Installation
 
 ```bash
+# From PyPI
+pip install markbook
+
+# Or as a CLI tool via uv (recommended)
+uv tool install markbook
+
+# For development
 pip install -e .
 ```
 
@@ -42,27 +49,47 @@ author: "Your Name"
 
 ### Headings
 
-Standard Markdown headings with optional anchor IDs:
+Use `##`, `###` and `####` to structure your notebook into chapters and sections. Each heading becomes its own styled markdown cell. Optional anchor IDs enable linking from the table of contents.
 
 ```markdown
-## 1. Chapter Title {#chapter1}
+## 1. Business Understanding {#chapter1}
 
-### 1.1 Sub-chapter {#chap1_1}
+### 1.1 Project Context {#chap1_1}
 
-#### 1.1.1 Section {#chap1_1_1}
+#### 1.1.1 Goals {#chap1_1_1}
 ```
 
-`##` headings get a colored left border, `###` a subtler one, `####` no border.
+| Level  | Rendered Style                                     |
+|--------|----------------------------------------------------|
+| `##`   | Large (1.6em), accent color `#2E86AB`, 4px left border |
+| `###`  | Medium (1.3em), accent color `#2E86AB`, 3px left border |
+| `####` | Small (1.1em), muted color `#555`, no border       |
+
+Anchor IDs (`{#id}`) are optional — if omitted, markbook auto-generates them by slugifying the heading text.
+
+> **Note:** `#` (h1) is **not** recognized as a chapter heading. It passes through as regular markdown. Use `##` and below.
 
 ### Table of Contents
 
-Place `[TOC]` on its own line to auto-generate a linked table of contents from all headings:
+Place `[TOC]` on its own line to auto-generate a linked table of contents from all headings in the document:
 
 ```markdown
 [TOC]
 ```
 
-Renders as a markdown list with bold top-level links and indented sub-items.
+This produces a cell like:
+
+```
+## Gliederung
+
+* **[1. Business Understanding](#chapter1)**
+    * [1.1 Project Context](#chap1_1)
+        * [1.1.1 Goals](#chap1_1_1)
+* **[2. Data Loading](#chapter2)**
+    * [2.1 Imports](#chap2_1)
+```
+
+`##` headings become bold top-level entries, `###` are indented, `####` double-indented. All entries link to their heading's anchor ID.
 
 ### Code Cells
 
