@@ -1,0 +1,43 @@
+[project]
+name = "markbook"
+version = "0.1.0"
+description = "Write Jupyter notebooks in Markdown, render them beautifully"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "nbformat>=5.10.4",
+    "pyyaml>=6.0.3",
+    "rich>=14.3.3",
+    "typer>=0.24.1",
+    "watchdog>=6.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1,<9",
+    "pytest-asyncio>=1.1.0,<2",
+    "pre-commit>=4.3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff.lint]
+select = ["E","F","I","UP","B","SIM","PL","RUF","C90"]
+ignore = [
+  "E501",     # line too long
+  "E402",     # imports not at top of file
+  "PLC0415",  # import should be at top-level
+  "PLR2004",  # magic values
+  "PLR0911",  # too many return statements
+  "PLR0912",  # too many branches
+  "PLR0913",  # too many arguments
+  "PLR0915",  # too many statements
+  "C901",     # function too complex
+  "RUF006",   # create_task return value not stored
+  "PLW0603",  # global statement
+  "PLW2901",  # loop variable overwritten
+  "RUF001",   # en dash, etc.
+  "UP046",    # derive from generic base class
+]
